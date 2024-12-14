@@ -22,4 +22,12 @@ tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
+open_launcher = "1.5.5"
+tokio = { version = "1", features = ["full"] }
+homedir = "0.3.4"
+flate2 = "1.0.35"
+reqwest = { version = "0.12", features = ["blocking"] }
+tar = "0.4.43"
+zip = "2.2.1"
+rand = "0.8.5"
+base64 = "0.22.1"
