@@ -119,7 +119,7 @@ function App() {
 
       <br />
 
-      <p>v0.2.0</p>
+      <p>v0.2.1</p>
 
       <br />
 
