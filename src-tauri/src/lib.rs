@@ -2,6 +2,7 @@ use base64::prelude::*;
 use homedir::my_home;
 use open_launcher::{auth, version, Launcher};
 use rand::Rng;
+use tauri_plugin_updater::UpdaterExt;
 use std::{
     fs::File,
     io::{Read, Write},
@@ -359,6 +360,30 @@ async fn get_java_exec(app: &AppHandle, launcher_dir: PathBuf) -> String {
     java_exec.to_str().unwrap().to_string()
 }
 
+async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
+    if let Some(update) = app.updater()?.check().await? {
+      let mut downloaded = 0;
+  
+      // alternatively we could also call update.download() and update.install() separately
+      update
+        .download_and_install(
+          |chunk_length, content_length| {
+            downloaded += chunk_length;
+            println!("downloaded {downloaded} from {content_length:?}");
+          },
+          || {
+            println!("download finished");
+          },
+        )
+        .await?;
+  
+      println!("update installed");
+      app.restart();
+    }
+  
+    Ok(())
+  }
+
 pub async fn run() {
     let launcher_dir = get_launcher_dir();
 
@@ -373,6 +398,13 @@ pub async fn run() {
     }
 
     tauri::Builder::default()
+        .setup(|app| {
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+            update(handle).await.unwrap();
+            });
+            Ok(())
+        })
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![launch, get_nick, save_nick, log])

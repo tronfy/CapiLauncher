@@ -119,6 +119,10 @@ function App() {
 
       <br />
 
+      <p>v0.2.0</p>
+
+      <br />
+
       <p>{msg}...</p>
 
       {!loading && <button onClick={launch}>Iniciar</button>}
