@@ -2,7 +2,7 @@
   "version": "0.2.1",
   "platforms": {
     "windows-x86_64": {
-      "signature": "",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUNkd5UUZ6Q3dvSWdGLzFJd3M2MVFBMmxVc2hoNHJtc3VFYnUrVDNJdFhXQjQzQm5sRXErdGc4N29KVmZrYWZJeStzc09kYlpobVVQVjU3THhHMHFuMmFQWVRVRG15bFFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzM0MTk4ODY2CWZpbGU6Y2FwaWxhdW5jaGVyXzAuMi4xX3g2NF9lbi1VUy5tc2kKTnBIL3JJUGFtMHdZYWplMDBxUGJ4NkRoYnM3YkZPVytGQ3g0QXhTMFVSNjBmT24wY3pMd1NteHJKSlFTclhBRDh4TXBaME5DQlFzTzM4RWZETXJIQWc9PQo=",
       "url": "https://github.com/tronfy/CapiLauncher/releases/download/v0.2.1/capilauncher_0.2.1_x64_en-US.msi"
     }
   }
