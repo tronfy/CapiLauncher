@@ -31,3 +31,6 @@ tar = "0.4.43"
 zip = "2.2.1"
 rand = "0.8.5"
 base64 = "0.22.1"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"
