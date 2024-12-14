@@ -312,7 +312,7 @@ async fn get_java_exec(app: &AppHandle, launcher_dir: PathBuf) -> String {
 
     // if exec not found, download and extract
     if !java_exec.exists() {
-        app.emit("msg", "atualizado versão do java").unwrap();
+        app.emit("msg", "atualizando versão do java").unwrap();
         println!("downloading java...");
         let url = format!("{}_{}", base_url, packed_file);
 
