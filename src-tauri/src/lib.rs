@@ -2,7 +2,6 @@ use base64::prelude::*;
 use homedir::my_home;
 use open_launcher::{auth, version, Launcher};
 use rand::Rng;
-use tauri_plugin_updater::UpdaterExt;
 use std::{
     fs::File,
     io::{Read, Write},
@@ -10,6 +9,7 @@ use std::{
     process::Command,
 };
 use tauri::{AppHandle, Emitter};
+use tauri_plugin_updater::UpdaterExt;
 
 use flate2::read::GzDecoder;
 
@@ -68,25 +68,58 @@ fn save_nick(nickname: String) {
     file.write_all(nick_base64.as_bytes()).unwrap();
 }
 
-// #[tauri::command]
-// fn authorize(nickname: String, token: String) -> bool {
-//     // get https://auth.capivaramanca.com.br/link?nick=NICKNAME&token=TOKEN
-//     let url = format!(
-//         "https://auth.capivaramanca.com.br/link?nick={}&token={}",
-//         nickname, token
-//     );
+#[tauri::command]
+fn open_folder() {
+    let game_dir = get_game_dir();
+    open::that(game_dir).unwrap();
+}
 
-//     let response = reqwest::blocking::get(&url).unwrap();
+#[tauri::command]
+fn get_sys_ram() -> u64 {
+    println!("getting system ram");
+    let sys = sysinfo::System::new_all();
 
-//     if response.status().is_success() {
-//         save_nickname(nickname);
-//         // return Ok(());
-//         return true;
-//     }
+    let total_ram = sys.total_memory();
 
-//     // Err("Falha ao autorizar".to_string())
-//     false
-// }
+    total_ram / 1024 / 1024
+}
+
+#[tauri::command]
+fn get_ram() -> u64 {
+    println!("getting ram");
+
+    let game_dir = get_game_dir();
+
+    let ram_file = game_dir.join(".ram");
+
+    if !ram_file.exists() {
+        let ret = (get_sys_ram() as f64 / 2.7) as u64;
+        if ret > 8192 {
+            return 8192;
+        }
+        return ret;
+    }
+
+    let mut file = File::open(ram_file).unwrap();
+
+    let mut ram_str = String::new();
+    file.read_to_string(&mut ram_str).unwrap();
+
+    let ram = ram_str.parse::<u64>().unwrap();
+
+    ram
+}
+
+#[tauri::command]
+fn set_ram(ram: u64) {
+    let game_dir = get_game_dir();
+
+    let ram_file = game_dir.join(".ram");
+
+    let mut file = File::create(ram_file).unwrap();
+
+    file.write_all(ram.to_string().as_bytes()).unwrap();
+}
 
 #[tauri::command]
 fn get_nick() -> String {
@@ -236,6 +269,11 @@ async fn launch(app: AppHandle) {
         Err(e) => println!("An error occurred while installing the libraries: {}", e),
     };
 
+    // set ram
+    let ram = get_ram();
+    launcher.jvm_arg(format!("-Xms{}M", ram).as_str());
+    launcher.jvm_arg(format!("-Xmx{}M", ram).as_str());
+
     let _process = match launcher.launch() {
         Ok(p) => p,
         Err(e) => {
@@ -362,27 +400,27 @@ async fn get_java_exec(app: &AppHandle, launcher_dir: PathBuf) -> String {
 
 async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
     if let Some(update) = app.updater()?.check().await? {
-      let mut downloaded = 0;
-  
-      // alternatively we could also call update.download() and update.install() separately
-      update
-        .download_and_install(
-          |chunk_length, content_length| {
-            downloaded += chunk_length;
-            println!("downloaded {downloaded} from {content_length:?}");
-          },
-          || {
-            println!("download finished");
-          },
-        )
-        .await?;
-  
-      println!("update installed");
-      app.restart();
+        let mut downloaded = 0;
+
+        // alternatively we could also call update.download() and update.install() separately
+        update
+            .download_and_install(
+                |chunk_length, content_length| {
+                    downloaded += chunk_length;
+                    println!("downloaded {downloaded} from {content_length:?}");
+                },
+                || {
+                    println!("download finished");
+                },
+            )
+            .await?;
+
+        println!("update installed");
+        app.restart();
     }
-  
+
     Ok(())
-  }
+}
 
 pub async fn run() {
     let launcher_dir = get_launcher_dir();
@@ -401,13 +439,22 @@ pub async fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-            update(handle).await.unwrap();
+                update(handle).await.unwrap();
             });
             Ok(())
         })
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![launch, get_nick, save_nick, log])
+        .invoke_handler(tauri::generate_handler![
+            launch,
+            get_nick,
+            save_nick,
+            log,
+            open_folder,
+            get_ram,
+            set_ram,
+            get_sys_ram
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
