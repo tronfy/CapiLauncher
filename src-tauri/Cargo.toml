@@ -1,8 +1,8 @@
 [package]
-name = "capilauncher"
-version = "0.2.1"
-description = "A Tauri App"
-authors = ["you"]
+name = "CapiLauncher"
+version = "0.3.0"
+description = "Launcher de minecraft customizado"
+authors = ["CapivaraManca"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -22,7 +22,6 @@ tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-open_launcher = "1.5.5"
 tokio = { version = "1", features = ["full"] }
 homedir = "0.3.4"
 flate2 = "1.0.35"
@@ -33,6 +32,9 @@ rand = "0.8.5"
 base64 = "0.22.1"
 open = "5.3.1"
 sysinfo = "0.33.0"
+
+[dependencies.open_launcher]
+path = "../open_launcher_rs"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"

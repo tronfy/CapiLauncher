@@ -3,10 +3,7 @@ use homedir::my_home;
 use open_launcher::{auth, version, Launcher};
 use rand::Rng;
 use std::{
-    fs::File,
-    io::{Read, Write},
-    path::{self, Path, PathBuf},
-    process::Command,
+    fs::File, io::{Read, Write}, os::windows::process::CommandExt, path::PathBuf, process::Command
 };
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_updater::UpdaterExt;
@@ -190,10 +187,13 @@ async fn launch(app: AppHandle) {
         // remove zip
         std::fs::remove_file(&instance_file).unwrap();
     }
+    
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
     // packwiz
     app.emit("msg", "atualizando mods").unwrap();
     Command::new(java_exec.clone())
+        .creation_flags(CREATE_NO_WINDOW)
         .arg("-jar")
         .arg("packwiz-installer-bootstrap.jar")
         .arg("https://api.capivaramanca.com.br/csmp/X/pack.toml")

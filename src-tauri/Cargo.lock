@@ -3,6 +3,29 @@
 version = 4
 
 [[package]]
+name = "CapiLauncher"
+version = "0.3.0"
+dependencies = [
+ "base64 0.22.1",
+ "flate2",
+ "homedir",
+ "open",
+ "open_launcher",
+ "rand 0.8.5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tar",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-shell",
+ "tauri-plugin-updater",
+ "tokio",
+ "zip 2.2.1",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -427,29 +450,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b96ec4966b5813e2c0507c1f86115c8c5abaadc3980879c3424042a02fd1ad3"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "capilauncher"
-version = "0.2.1"
-dependencies = [
- "base64 0.22.1",
- "flate2",
- "homedir",
- "open",
- "open_launcher",
- "rand 0.8.5",
- "reqwest",
- "serde",
- "serde_json",
- "sysinfo",
- "tar",
- "tauri",
- "tauri-build",
- "tauri-plugin-shell",
- "tauri-plugin-updater",
- "tokio",
- "zip 2.2.1",
 ]
 
 [[package]]
@@ -2744,8 +2744,6 @@ dependencies = [
 [[package]]
 name = "open_launcher"
 version = "1.5.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f59329893ed0b3f133c1504eb415cc83007e3e529158babfbf2088a6b256f0d"
 dependencies = [
  "async-process",
  "async-recursion",
