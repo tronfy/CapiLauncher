@@ -32,9 +32,7 @@ rand = "0.8.5"
 base64 = "0.22.1"
 open = "5.3.1"
 sysinfo = "0.33.0"
-
-[dependencies.open_launcher]
-path = "../open_launcher_rs"
+open_launcher = "1.5.5"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"

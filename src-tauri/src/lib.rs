@@ -3,7 +3,10 @@ use homedir::my_home;
 use open_launcher::{auth, version, Launcher};
 use rand::Rng;
 use std::{
-    fs::File, io::{Read, Write}, os::windows::process::CommandExt, path::PathBuf, process::Command
+    fs::File,
+    io::{Read, Write},
+    path::PathBuf,
+    process::Command,
 };
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_updater::UpdaterExt;
@@ -29,7 +32,7 @@ fn get_home_dir() -> PathBuf {
 fn get_launcher_dir() -> PathBuf {
     let home = get_home_dir();
 
-    let launcher_dir = home.join(".capilauncher").join("X");
+    let launcher_dir = home.join(".capilauncher").join("XI");
 
     launcher_dir
 }
@@ -167,12 +170,12 @@ async fn launch(app: AppHandle) {
     }
 
     // get instance
-    // http://api.capivaramanca.com.br/csmp/X/CSMPX.zip
+    // http://api.capivaramanca.com.br/xi/CSMPXI.zip
     let mods_dir = game_dir.join("mods");
-    let instance_file = launcher_dir.join("CSMPX.zip");
+    let instance_file = launcher_dir.join("CSMPXI.zip");
     if !mods_dir.exists() {
         app.emit("msg", "obtendo instância do modpack").unwrap();
-        let url = "http://api.capivaramanca.com.br/csmp/X/CSMPX.zip";
+        let url = "https://api.capivaramanca.com.br/xi/CSMPXI.zip";
         let response = reqwest::get(url).await.unwrap();
         let mut file = std::fs::File::create(&instance_file).unwrap();
         let bytes = response.bytes().await.unwrap();
@@ -187,16 +190,20 @@ async fn launch(app: AppHandle) {
         // remove zip
         std::fs::remove_file(&instance_file).unwrap();
     }
-    
-    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
     // packwiz
     app.emit("msg", "atualizando mods").unwrap();
-    Command::new(java_exec.clone())
-        .creation_flags(CREATE_NO_WINDOW)
-        .arg("-jar")
+
+    let mut cmd = Command::new(java_exec.clone());
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd.arg("-jar")
         .arg("packwiz-installer-bootstrap.jar")
-        .arg("https://api.capivaramanca.com.br/csmp/X/pack.toml")
+        .arg("https://api.capivaramanca.com.br/xi/pack.toml")
         .current_dir(game_dir.clone())
         .output()
         .expect("failed to execute process");
@@ -205,9 +212,9 @@ async fn launch(app: AppHandle) {
         game_dir.to_str().unwrap(),
         java_exec.as_str(),
         version::Version {
-            minecraft_version: "1.20.1".to_string(),
-            loader: Some("forge".to_string()),
-            loader_version: Some("47.3.0".to_string()),
+            minecraft_version: "1.21.1".to_string(),
+            loader: Some("neoforge".to_string()),
+            loader_version: Some("21.1.190".to_string()),
         },
     )
     .await;
@@ -295,11 +302,11 @@ async fn get_java_exec(app: &AppHandle, launcher_dir: PathBuf) -> String {
     println!("{}, {}", os, arch);
 
     let java_dir = launcher_dir.join("java");
-    let base_url = "https://download.oracle.com/java/17/archive/jdk-17.0.12";
+    let base_url = "https://download.oracle.com/java/21/latest/jdk-21";
 
     let packed_file: &str;
     let java_exec: PathBuf;
-    let mut unpacked_dir = "jdk-17.0.12";
+    let mut unpacked_dir = "jdk-21.0.7";
 
     match arch {
         "x86_64" => match os {
@@ -312,7 +319,7 @@ async fn get_java_exec(app: &AppHandle, launcher_dir: PathBuf) -> String {
                 java_exec = java_dir.join("bin").join("java.exe");
             }
             "macos" => {
-                unpacked_dir = "jdk-17.0.12.jdk";
+                unpacked_dir = "jdk-21.jdk";
                 packed_file = "macos-x64_bin.tar.gz";
                 java_exec = java_dir
                     .join("Contents")
@@ -330,7 +337,7 @@ async fn get_java_exec(app: &AppHandle, launcher_dir: PathBuf) -> String {
                 java_exec = java_dir.join("bin").join("java");
             }
             "macos" => {
-                unpacked_dir = "jdk-17.0.12.jdk";
+                unpacked_dir = "jdk-21.jdk";
                 packed_file = "macos-aarch64_bin.tar.gz";
                 java_exec = java_dir
                     .join("Contents")

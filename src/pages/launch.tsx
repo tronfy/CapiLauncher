@@ -24,7 +24,7 @@ export default function LaunchPage({ nickname, launch, launching, openSettings }
         <h1 className="text-3xl pb-1">Olá, {nickname}!</h1>
 
         <p className="pb-10">
-          Pronto para iniciar <b>CapivaraSMP X</b>!
+          Pronto para iniciar <b>CapivaraSMP XI</b>!
         </p>
 
         {status && <p className="text-xl font-mono font-bold text-zinc-400 pb-2">{status}...</p>}
