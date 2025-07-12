@@ -15,7 +15,7 @@ export default function Header({ showSettings, openSettings }: HeaderProps) {
         <div>
           <div className="flex items-end gap-2">
             <h1 className="text-3xl font-bold">CapiLauncher</h1>
-            <h2 className="text-zinc-400 pb-1">v0.3.2</h2>
+            <h2 className="text-zinc-400 pb-1">v0.3.3</h2>
           </div>
           <h2 className="text-sm">by CapivaraManca</h2>
         </div>

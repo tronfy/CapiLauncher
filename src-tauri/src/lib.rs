@@ -188,10 +188,10 @@ async fn launch(app: AppHandle) {
         // std::io::copy(&mut cursor, &mut file).unwrap();
 
         let url = "https://www.dropbox.com/scl/fi/jg4becnaesrkapqxylkb1/CSMPXI.zip?rlkey=91974voaxsbka6gt0hfzb0mj2&st=wmitnlao&dl=0";
-
-        let output = Command::new("wget")
+        let output = Command::new("curl")
+            .arg("-L")
             .arg(url)
-            .arg("-O")
+            .arg("-o")
             .arg(instance_file.to_str().unwrap())
             .output()
             .expect("failed to execute wget command");

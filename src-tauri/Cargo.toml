@@ -1,6 +1,6 @@
 [package]
 name = "CapiLauncher"
-version = "0.3.2"
+version = "0.3.3"
 description = "Launcher de minecraft customizado"
 authors = ["CapivaraManca"]
 edition = "2021"
