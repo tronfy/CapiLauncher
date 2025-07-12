@@ -3,14 +3,14 @@ import { useState } from 'react'
 import Header from '../components/Header'
 
 export type LaunchPageProps = {
-  launching: boolean
   nickname: string
   launch: () => void
   openSettings?: () => void
 }
 
-export default function LaunchPage({ nickname, launch, launching, openSettings }: LaunchPageProps) {
+export default function LaunchPage({ nickname, launch, openSettings }: LaunchPageProps) {
   const [status, setStatus] = useState<string>('')
+  const [launching, setLaunching] = useState<boolean>(false)
 
   listen<string>('msg', event => {
     setStatus(event.payload)
@@ -27,18 +27,21 @@ export default function LaunchPage({ nickname, launch, launching, openSettings }
           Pronto para iniciar <b>CapivaraSMP XI</b>!
         </p>
 
-        {status && <p className="text-xl font-mono font-bold text-zinc-400 pb-2">{status}...</p>}
+        {status && <p className="text-center outline-2 text-xl font-mono font-bold text-zinc-400 pb-2">{status}...</p>}
 
         {launching ? (
-          <button
-            onClick={launch}
-            className="flex items-center gap-2 px-14 py-5 cursor-default bg-zinc-800 hover:bg-zinc-800"
-          >
+          <button disabled className="flex items-center gap-2 px-14 py-5 cursor-default bg-zinc-800 hover:bg-zinc-800">
             <span className="text-3xl">🚀</span>
             <span className="text-2xl font-bold">Iniciando...</span>
           </button>
         ) : (
-          <button onClick={launch} className="flex items-center gap-2 px-14 py-5">
+          <button
+            onClick={() => {
+              setLaunching(true)
+              launch()
+            }}
+            className="flex items-center gap-2 px-14 py-5"
+          >
             <span className="text-3xl">🚀</span>
             <span className="text-2xl font-bold">Iniciar</span>
           </button>

@@ -48,7 +48,6 @@ function App() {
     <LaunchPage
       nickname={nickname}
       launch={launch}
-      launching={false}
       openSettings={() => {
         setSettingsOpen(true)
       }}

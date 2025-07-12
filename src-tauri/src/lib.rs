@@ -1,4 +1,5 @@
 use base64::prelude::*;
+use core::panic;
 use homedir::my_home;
 use open_launcher::{auth, version, Launcher};
 use rand::Rng;
@@ -172,15 +173,37 @@ async fn launch(app: AppHandle) {
     // get instance
     // http://api.capivaramanca.com.br/xi/CSMPXI.zip
     let mods_dir = game_dir.join("mods");
-    let instance_file = launcher_dir.join("CSMPXI.zip");
+    let instance_file = get_home_dir().join(".capilauncher").join("XI.zip");
     if !mods_dir.exists() {
-        app.emit("msg", "obtendo instância do modpack").unwrap();
-        let url = "https://api.capivaramanca.com.br/xi/CSMPXI.zip";
-        let response = reqwest::get(url).await.unwrap();
-        let mut file = std::fs::File::create(&instance_file).unwrap();
-        let bytes = response.bytes().await.unwrap();
-        let mut cursor = std::io::Cursor::new(bytes);
-        std::io::copy(&mut cursor, &mut file).unwrap();
+        app.emit(
+            "msg",
+            "obtendo instância do modpack (isso demora um pouco, mas é só na primeira vez!)",
+        )
+        .unwrap();
+        // let url = "https://api.capivaramanca.com.br/xi/CSMPXI.zip";
+        // let response = reqwest::get(url).await.unwrap();
+        // let mut file = std::fs::File::create(&instance_file).unwrap();
+        // let bytes = response.bytes().await.unwrap();
+        // let mut cursor = std::io::Cursor::new(bytes);
+        // std::io::copy(&mut cursor, &mut file).unwrap();
+
+        let url = "https://www.dropbox.com/scl/fi/jg4becnaesrkapqxylkb1/CSMPXI.zip?rlkey=91974voaxsbka6gt0hfzb0mj2&st=wmitnlao&dl=0";
+
+        let output = Command::new("wget")
+            .arg(url)
+            .arg("-O")
+            .arg(instance_file.to_str().unwrap())
+            .output()
+            .expect("failed to execute wget command");
+
+        if !output.status.success() {
+            eprintln!(
+                "Failed to download instance: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            app.emit("msg", "falha ao baixar instância").unwrap();
+            return;
+        }
 
         // unzip
         let zip = File::open(&instance_file).unwrap();
