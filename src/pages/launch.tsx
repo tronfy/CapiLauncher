@@ -24,7 +24,7 @@ export default function LaunchPage({ nickname, launch, openSettings }: LaunchPag
         <h1 className="text-3xl pb-1">Olá, {nickname}!</h1>
 
         <p className="pb-10">
-          Pronto para iniciar <b>CapivaraSMP XI</b>!
+          Pronto para iniciar <b>CapivaraSMP XII: Magitek</b>!
         </p>
 
         {status && <p className="text-center outline-2 text-xl font-mono font-bold text-zinc-400 pb-2">{status}...</p>}

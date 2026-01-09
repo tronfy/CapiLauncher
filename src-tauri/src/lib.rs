@@ -1,5 +1,6 @@
 use base64::prelude::*;
 use core::panic;
+use flate2::read::GzDecoder;
 use homedir::my_home;
 use open_launcher::{auth, version, Launcher};
 use rand::Rng;
@@ -11,8 +12,6 @@ use std::{
 };
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_updater::UpdaterExt;
-
-use flate2::read::GzDecoder;
 
 fn get_home_dir() -> PathBuf {
     let home = match my_home() {
@@ -33,7 +32,7 @@ fn get_home_dir() -> PathBuf {
 fn get_launcher_dir() -> PathBuf {
     let home = get_home_dir();
 
-    let launcher_dir = home.join(".capilauncher").join("XI");
+    let launcher_dir = home.join(".capilauncher").join("XII");
 
     launcher_dir
 }
@@ -94,7 +93,10 @@ fn get_ram() -> u64 {
     let ram_file = game_dir.join(".ram");
 
     if !ram_file.exists() {
-        let ret = (get_sys_ram() as f64 / 2.7) as u64;
+        let ret = (get_sys_ram() as f64 / 2.8) as u64;
+        if ret < 2048 {
+            return 2048;
+        }
         if ret > 8192 {
             return 8192;
         }
@@ -156,10 +158,10 @@ async fn launch(app: AppHandle) {
 
     let java_exec = get_java_exec(&app, launcher_dir.clone()).await;
 
-    // if .sl_password does not exist, create it
-    let sl_file = game_dir.join(".sl_password");
-    if !sl_file.exists() {
-        let mut file = File::create(sl_file).unwrap();
+    // if .nl_password does not exist, create it
+    let nl_file = game_dir.join(".nl_password");
+    if !nl_file.exists() {
+        let mut file = File::create(nl_file).unwrap();
         // generate a 32 char random password
         let password = rand::thread_rng()
             .sample_iter(&rand::distributions::Alphanumeric)
@@ -171,23 +173,17 @@ async fn launch(app: AppHandle) {
     }
 
     // get instance
-    // http://api.capivaramanca.com.br/xi/CSMPXI.zip
     let mods_dir = game_dir.join("mods");
-    let instance_file = get_home_dir().join(".capilauncher").join("XI.zip");
+    let instance_file = get_home_dir().join(".capilauncher").join("XII.zip");
     if !mods_dir.exists() {
         app.emit(
             "msg",
-            "obtendo instância do modpack (isso demora um pouco, mas é só na primeira vez!)",
+            "obtendo instância do modpack, (isso demora um pouco, mas é só na primeira vez!)",
         )
         .unwrap();
-        // let url = "https://api.capivaramanca.com.br/xi/CSMPXI.zip";
-        // let response = reqwest::get(url).await.unwrap();
-        // let mut file = std::fs::File::create(&instance_file).unwrap();
-        // let bytes = response.bytes().await.unwrap();
-        // let mut cursor = std::io::Cursor::new(bytes);
-        // std::io::copy(&mut cursor, &mut file).unwrap();
+        // let url = "https://api.capivaramanca.com.br/xii/CSMP_XII.zip";
+        let url = "https://www.dropbox.com/scl/fi/g927bk4mkk8qnl136bgu5/CSMP_XII_full.zip?rlkey=vp5m9jczyc271failc7j0iz6q&st=6z7s6snb&dl=0";
 
-        let url = "https://www.dropbox.com/scl/fi/jg4becnaesrkapqxylkb1/CSMPXI.zip?rlkey=91974voaxsbka6gt0hfzb0mj2&st=wmitnlao&dl=0";
         let output = Command::new("curl")
             .arg("-L")
             .arg(url)
@@ -204,6 +200,8 @@ async fn launch(app: AppHandle) {
             app.emit("msg", "falha ao baixar instância").unwrap();
             return;
         }
+
+        app.emit("msg", "extraindo arquivos").unwrap();
 
         // unzip
         let zip = File::open(&instance_file).unwrap();
@@ -226,7 +224,7 @@ async fn launch(app: AppHandle) {
     }
     cmd.arg("-jar")
         .arg("packwiz-installer-bootstrap.jar")
-        .arg("https://api.capivaramanca.com.br/xi/pack.toml")
+        .arg("https://api.capivaramanca.com.br/xii/pack.toml")
         .current_dir(game_dir.clone())
         .output()
         .expect("failed to execute process");
@@ -237,7 +235,7 @@ async fn launch(app: AppHandle) {
         version::Version {
             minecraft_version: "1.21.1".to_string(),
             loader: Some("neoforge".to_string()),
-            loader_version: Some("21.1.190".to_string()),
+            loader_version: Some("21.1.218".to_string()),
         },
     )
     .await;
@@ -255,7 +253,7 @@ async fn launch(app: AppHandle) {
     // launcher.fullscreen(true);
     // launcher.quick_play("multiplayer", "hypixel.net");
 
-    app.emit("msg", "iniciando instalação").unwrap();
+    app.emit("msg", "verificando instalação").unwrap();
 
     let mut progress = launcher.on_progress();
     tokio::spawn(async move {
@@ -304,6 +302,46 @@ async fn launch(app: AppHandle) {
     launcher.jvm_arg(format!("-Xms{}M", ram).as_str());
     launcher.jvm_arg(format!("-Xmx{}M", ram).as_str());
 
+    // base flags
+    launcher.jvm_arg("-XX:+UnlockExperimentalVMOptions");
+    launcher.jvm_arg("-XX:+UnlockDiagnosticVMOptions");
+    launcher.jvm_arg("-XX:+AlwaysActAsServerClassMachine");
+    launcher.jvm_arg("-XX:+AlwaysPreTouch");
+    launcher.jvm_arg("-XX:+DisableExplicitGC");
+    launcher.jvm_arg("-XX:+UseNUMA");
+    launcher.jvm_arg("-XX:NmethodSweepActivity=1");
+    launcher.jvm_arg("-XX:ReservedCodeCacheSize=400M");
+    launcher.jvm_arg("-XX:NonNMethodCodeHeapSize=12M");
+    launcher.jvm_arg("-XX:ProfiledCodeHeapSize=194M");
+    launcher.jvm_arg("-XX:NonProfiledCodeHeapSize=194M");
+    launcher.jvm_arg("-XX:-DontCompileHugeMethods");
+    launcher.jvm_arg("-XX:MaxNodeLimit=240000");
+    launcher.jvm_arg("-XX:NodeLimitFudgeFactor=8000");
+    launcher.jvm_arg("-XX:+UseVectorCmov");
+    launcher.jvm_arg("-XX:+PerfDisableSharedMem");
+    launcher.jvm_arg("-XX:+UseFastUnorderedTimeStamps");
+    launcher.jvm_arg("-XX:+UseCriticalJavaThreadPriority");
+    launcher.jvm_arg("-XX:ThreadPriorityPolicy=1");
+    launcher.jvm_arg("-XX:AllocatePrefetchStyle=3");
+
+    // optimized client g1gc
+    launcher.jvm_arg("-XX:+UseG1GC");
+    launcher.jvm_arg("-XX:MaxGCPauseMillis=37");
+    launcher.jvm_arg("-XX:G1HeapRegionSize=16M");
+    launcher.jvm_arg("-XX:G1NewSizePercent=23");
+    launcher.jvm_arg("-XX:G1ReservePercent=20");
+    launcher.jvm_arg("-XX:SurvivorRatio=32");
+    launcher.jvm_arg("-XX:G1MixedGCCountTarget=3");
+    launcher.jvm_arg("-XX:G1HeapWastePercent=20");
+    launcher.jvm_arg("-XX:InitiatingHeapOccupancyPercent=10");
+    launcher.jvm_arg("-XX:G1RSetUpdatingPauseTimePercent=0");
+    launcher.jvm_arg("-XX:MaxTenuringThreshold=1");
+    launcher.jvm_arg("-XX:G1SATBBufferEnqueueingThresholdPercent=30");
+    launcher.jvm_arg("-XX:G1ConcMarkStepDurationMillis=5.0");
+    launcher.jvm_arg("-XX:G1ConcRSHotCardLimit=16");
+    launcher.jvm_arg("-XX:G1ConcRefinementServiceIntervalMillis=150");
+    launcher.jvm_arg("-XX:GCTimeRatio=99");
+
     let _process = match launcher.launch() {
         Ok(p) => p,
         Err(e) => {
@@ -329,7 +367,7 @@ async fn get_java_exec(app: &AppHandle, launcher_dir: PathBuf) -> String {
 
     let packed_file: &str;
     let java_exec: PathBuf;
-    let mut unpacked_dir = "jdk-21.0.7";
+    let mut unpacked_dir = "jdk-21.0.9";
 
     match arch {
         "x86_64" => match os {

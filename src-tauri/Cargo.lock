@@ -4,10 +4,11 @@ version = 4
 
 [[package]]
 name = "CapiLauncher"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "base64 0.22.1",
  "flate2",
+ "futures-util",
  "homedir",
  "open",
  "open_launcher",
