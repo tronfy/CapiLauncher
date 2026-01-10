@@ -338,8 +338,6 @@ async fn launch(app: AppHandle) {
     launcher.jvm_arg("-XX:MaxTenuringThreshold=1");
     launcher.jvm_arg("-XX:G1SATBBufferEnqueueingThresholdPercent=30");
     launcher.jvm_arg("-XX:G1ConcMarkStepDurationMillis=5.0");
-    launcher.jvm_arg("-XX:G1ConcRSHotCardLimit=16");
-    launcher.jvm_arg("-XX:G1ConcRefinementServiceIntervalMillis=150");
     launcher.jvm_arg("-XX:GCTimeRatio=99");
 
     let _process = match launcher.launch() {
@@ -361,6 +359,38 @@ async fn get_java_exec(app: &AppHandle, launcher_dir: PathBuf) -> String {
     let arch = std::env::consts::ARCH;
 
     println!("{}, {}", os, arch);
+
+    // try to find system java
+    let required = "jdk-21";
+
+    #[cfg(target_os = "windows")]
+    {
+        let java_homes = vec![r"C:\Program Files\Java", r"C:\Program Files (x86)\Java"];
+
+        for path in java_homes {
+            if let Ok(entries) = std::fs::read_dir(path) {
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        let file_name = entry.file_name();
+                        let file_name_str = file_name.to_string_lossy();
+                        if file_name_str.contains(required) {
+                            let possible_java_exec = PathBuf::from(path)
+                                .join(file_name_str.to_string())
+                                .join("bin")
+                                .join("java.exe");
+                            if possible_java_exec.exists() {
+                                println!(
+                                    "Found system Java at {}",
+                                    possible_java_exec.to_str().unwrap()
+                                );
+                                return possible_java_exec.to_str().unwrap().to_string();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     let java_dir = launcher_dir.join("java");
     let base_url = "https://download.oracle.com/java/21/latest/jdk-21";
@@ -423,31 +453,106 @@ async fn get_java_exec(app: &AppHandle, launcher_dir: PathBuf) -> String {
         println!("downloading java...");
         let url = format!("{}_{}", base_url, packed_file);
 
-        let response = reqwest::get(&url).await.unwrap();
+        let response = match reqwest::get(&url).await {
+            Ok(resp) => resp,
+            Err(e) => {
+                app.emit("msg", format!("erro ao baixar Java: {}", e))
+                    .unwrap();
+                eprintln!("Failed to download Java: {}", e);
+                return java_exec.to_str().unwrap().to_string();
+            }
+        };
         let dest = launcher_dir.join(packed_file);
 
-        let mut file = std::fs::File::create(&dest).unwrap();
-        let bytes = response.bytes().await.unwrap();
+        let mut file = match std::fs::File::create(&dest) {
+            Ok(f) => f,
+            Err(e) => {
+                app.emit("msg", format!("erro ao criar arquivo: {}", e))
+                    .unwrap();
+                eprintln!("Failed to create file: {}", e);
+                return java_exec.to_str().unwrap().to_string();
+            }
+        };
+        let bytes = match response.bytes().await {
+            Ok(b) => b,
+            Err(e) => {
+                app.emit("msg", format!("erro ao ler resposta: {}", e))
+                    .unwrap();
+                eprintln!("Failed to read response: {}", e);
+                return java_exec.to_str().unwrap().to_string();
+            }
+        };
         let mut cursor = std::io::Cursor::new(bytes);
-        std::io::copy(&mut cursor, &mut file).unwrap();
+        if let Err(e) = std::io::copy(&mut cursor, &mut file) {
+            app.emit("msg", format!("erro ao copiar arquivo: {}", e))
+                .unwrap();
+            eprintln!("Failed to copy file: {}", e);
+            return java_exec.to_str().unwrap().to_string();
+        }
 
         match os {
             "linux" => {
-                let tar = File::open(&dest).unwrap();
+                let tar = match File::open(&dest) {
+                    Ok(f) => f,
+                    Err(e) => {
+                        app.emit("msg", format!("erro ao abrir arquivo tar: {}", e))
+                            .unwrap();
+                        eprintln!("Failed to open tar file: {}", e);
+                        return java_exec.to_str().unwrap().to_string();
+                    }
+                };
                 let decoder = GzDecoder::new(tar);
                 let mut archive = tar::Archive::new(decoder);
-                archive.unpack(launcher_dir.clone()).unwrap();
+                if let Err(e) = archive.unpack(launcher_dir.clone()) {
+                    app.emit("msg", format!("erro ao extrair tar: {}", e))
+                        .unwrap();
+                    eprintln!("Failed to unpack tar: {}", e);
+                    return java_exec.to_str().unwrap().to_string();
+                }
             }
             "windows" => {
-                let zip = File::open(&dest).unwrap();
-                let mut archive = zip::ZipArchive::new(zip).unwrap();
-                archive.extract(launcher_dir.clone()).unwrap();
+                let zip = match File::open(&dest) {
+                    Ok(f) => f,
+                    Err(e) => {
+                        app.emit("msg", format!("erro ao abrir arquivo zip: {}", e))
+                            .unwrap();
+                        eprintln!("Failed to open zip file: {}", e);
+                        return java_exec.to_str().unwrap().to_string();
+                    }
+                };
+                let mut archive = match zip::ZipArchive::new(zip) {
+                    Ok(a) => a,
+                    Err(e) => {
+                        app.emit("msg", format!("erro ao ler zip: {}", e)).unwrap();
+                        eprintln!("Failed to read zip: {}", e);
+                        return java_exec.to_str().unwrap().to_string();
+                    }
+                };
+                if let Err(e) = archive.extract(launcher_dir.clone()) {
+                    app.emit("msg", format!("erro ao extrair zip: {}", e))
+                        .unwrap();
+                    eprintln!("Failed to extract zip: {}", e);
+                    return java_exec.to_str().unwrap().to_string();
+                }
             }
             "macos" => {
-                let tar = File::open(&dest).unwrap();
+                let tar = match File::open(&dest) {
+                    Ok(f) => f,
+                    Err(e) => {
+                        app.emit("msg", format!("erro ao abrir arquivo tar: {}", e))
+                            .unwrap();
+                        eprintln!("Failed to open tar file: {}", e);
+                        return java_exec.to_str().unwrap().to_string();
+                    }
+                };
                 let decoder = GzDecoder::new(tar);
                 let mut archive = tar::Archive::new(decoder);
-                archive.unpack(launcher_dir.clone()).unwrap();
+                if let Err(e) = archive.unpack(launcher_dir.clone()) {
+                    app.emit("msg", format!("erro ao extrair tar: {}", e))
+                        .unwrap();
+                    eprintln!("Failed to unpack tar: {}", e);
+                    return java_exec.to_str().unwrap().to_string();
+                }
             }
             _ => {
                 panic!("unsupported os: {}", os);
@@ -457,10 +562,19 @@ async fn get_java_exec(app: &AppHandle, launcher_dir: PathBuf) -> String {
         // rename unpacked dir
         let unpacked_dir_path = launcher_dir.join(unpacked_dir);
         let java_dir_path = launcher_dir.join("java");
-        std::fs::rename(unpacked_dir_path, java_dir_path).unwrap();
+        if let Err(e) = std::fs::rename(unpacked_dir_path, java_dir_path) {
+            app.emit("msg", format!("erro ao renomear diretório: {}", e))
+                .unwrap();
+            eprintln!("Failed to rename directory: {}", e);
+            return java_exec.to_str().unwrap().to_string();
+        }
 
         // remove packed file
-        std::fs::remove_file(dest).unwrap();
+        if let Err(e) = std::fs::remove_file(dest) {
+            app.emit("msg", format!("erro ao remover arquivo: {}", e))
+                .unwrap();
+            eprintln!("Failed to remove file: {}", e);
+        }
     }
 
     java_exec.to_str().unwrap().to_string()
