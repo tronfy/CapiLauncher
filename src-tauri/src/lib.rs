@@ -176,29 +176,31 @@ async fn launch(app: AppHandle) {
     let mods_dir = game_dir.join("mods");
     let instance_file = get_home_dir().join(".capilauncher").join("XII.zip");
     if !mods_dir.exists() {
-        app.emit(
-            "msg",
-            "obtendo instância do modpack, (isso demora um pouco, mas é só na primeira vez!)",
-        )
-        .unwrap();
-        // let url = "https://api.capivaramanca.com.br/xii/CSMP_XII.zip";
-        let url = "https://www.dropbox.com/scl/fi/g927bk4mkk8qnl136bgu5/CSMP_XII_full.zip?rlkey=vp5m9jczyc271failc7j0iz6q&st=6z7s6snb&dl=0";
+        if !instance_file.exists() {
+            app.emit(
+                "msg",
+                "obtendo instância do modpack, (isso demora um pouco, mas é só na primeira vez!)",
+            )
+            .unwrap();
+            // let url = "https://api.capivaramanca.com.br/xii/CSMP_XII.zip";
+            let url = "https://www.dropbox.com/scl/fi/g927bk4mkk8qnl136bgu5/CSMP_XII_full.zip?rlkey=vp5m9jczyc271failc7j0iz6q&st=6z7s6snb&dl=0";
 
-        let output = Command::new("curl")
-            .arg("-L")
-            .arg(url)
-            .arg("-o")
-            .arg(instance_file.to_str().unwrap())
-            .output()
-            .expect("failed to execute wget command");
+            let output = Command::new("curl")
+                .arg("-L")
+                .arg(url)
+                .arg("-o")
+                .arg(instance_file.to_str().unwrap())
+                .output()
+                .expect("failed to execute wget command");
 
-        if !output.status.success() {
-            eprintln!(
-                "Failed to download instance: {}",
-                String::from_utf8_lossy(&output.stderr)
-            );
-            app.emit("msg", "falha ao baixar instância").unwrap();
-            return;
+            if !output.status.success() {
+                eprintln!(
+                    "Failed to download instance: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                app.emit("msg", "falha ao baixar instância").unwrap();
+                return;
+            }
         }
 
         app.emit("msg", "extraindo arquivos").unwrap();
